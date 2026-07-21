@@ -1,0 +1,74 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ---------- Virtual Environment ----------
+venv/
+env/
+ENV/
+.venv/
+
+# ---------- Environment Variables / Secrets ----------
+.env
+.env.local
+.env.*.local
+
+# ---------- Database ----------
+*.db
+*.sqlite3
+
+# ---------- Uploaded Datasets & Generated Reports ----------
+uploads/*
+!uploads/.gitkeep
+reports/*
+!reports/.gitkeep
+charts/*
+!charts/.gitkeep
+
+# ---------- ML Model Artifacts ----------
+models/*.pkl
+models/*.joblib
+models/*.h5
+!models/.gitkeep
+
+# ---------- Logs ----------
+*.log
+logs/*
+!logs/.gitkeep
+
+# ---------- Testing ----------
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ---------- IDE / Editor ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Docker ----------
+*.pid
