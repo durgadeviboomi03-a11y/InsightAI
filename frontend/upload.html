@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Dataset — InsightAI</title>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <!-- ---------- Navigation ---------- -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" href="dashboard.html">
+                <i class="bi bi-graph-up-arrow"></i> InsightAI
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navMenu">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="upload.html">Upload</a></li>
+                    <li class="nav-item"><a class="nav-link" href="charts.html">Charts</a></li>
+                    <li class="nav-item"><a class="nav-link" href="chat.html">AI Chat</a></li>
+                    <li class="nav-item"><a class="nav-link" href="forecast.html">Forecast</a></li>
+                    <li class="nav-item"><a class="nav-link" href="reports.html">Reports</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Log Out</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <h2 class="fw-bold mb-1">Upload a Dataset</h2>
+        <p class="text-muted mb-4">Upload a CSV or Excel file to get started. We'll clean and profile it automatically.</p>
+
+        <!-- ---------- Drop Zone ---------- -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <div id="dropZone" class="border border-2 border-dashed rounded-3 text-center py-5 px-3">
+                    <i class="bi bi-cloud-arrow-up display-3 text-primary mb-3"></i>
+                    <h5 class="fw-bold">Drag &amp; drop your file here</h5>
+                    <p class="text-muted mb-3">or</p>
+                    <button type="button" class="btn btn-primary" id="browseBtn">Browse Files</button>
+                    <input type="file" id="fileInput" class="d-none" accept=".csv,.xlsx,.xls">
+                    <p class="text-muted small mt-3 mb-0">Supported formats: CSV, XLSX, XLS &nbsp;•&nbsp; Max size: 50MB</p>
+                </div>
+
+                <!-- Selected file preview, hidden until a file is chosen -->
+                <div id="selectedFileInfo" class="d-none mt-3 p-3 bg-light rounded d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-file-earmark-spreadsheet text-primary"></i>
+                        <span id="selectedFileName" class="fw-semibold ms-1"></span>
+                        <span id="selectedFileSize" class="text-muted ms-2"></span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="removeFileBtn">Remove</button>
+                </div>
+
+                <!-- Upload progress -->
+                <div id="uploadProgressWrapper" class="d-none mt-3">
+                    <div class="progress" style="height: 8px;">
+                        <div id="uploadProgressBar" class="progress-bar" role="progressbar" style="width: 0%;"></div>
+                    </div>
+                    <p class="text-muted small mt-1 mb-0" id="uploadProgressLabel">Uploading...</p>
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button type="button" class="btn btn-primary btn-lg" id="uploadBtn" disabled>
+                        <span id="uploadSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                        Upload &amp; Process
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---------- Result / Error Panel ---------- -->
+        <div id="resultPanel" class="d-none">
+            <div id="resultSuccess" class="alert alert-success d-none">
+                <h5 class="alert-heading"><i class="bi bi-check-circle"></i> Upload Successful!</h5>
+                <p class="mb-2" id="resultSummary"></p>
+                <a href="charts.html" id="viewChartsLink" class="btn btn-success btn-sm">View Charts</a>
+                <a href="dashboard.html" class="btn btn-outline-success btn-sm">Back to Dashboard</a>
+            </div>
+            <div id="resultError" class="alert alert-danger d-none">
+                <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Upload Failed</h5>
+                <p class="mb-0" id="resultErrorMessage"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // ---------- Auth guard ----------
+        (function authGuard() {
+            const token = localStorage.getItem('insightai_access_token');
+            if (!token) {
+                window.location.href = 'login.html';
+            }
+        })();
+
+        document.getElementById('logoutBtn').addEventListener('click', function (event) {
+            event.preventDefault();
+            localStorage.removeItem('insightai_access_token');
+            localStorage.removeItem('insightai_refresh_token');
+            window.location.href = 'login.html';
+        });
+
+        // ---------- Upload page logic ----------
+        // NOTE: This logic will be extracted into js/upload.js later in our
+        // sequence (file #43). Kept inline for now so this page is fully
+        // functional as soon as js/api.js exists, without needing edits.
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const browseBtn = document.getElementById('browseBtn');
+        const selectedFileInfo = document.getElementById('selectedFileInfo');
+        const selectedFileName = document.getElementById('selectedFileName');
+        const selectedFileSize = document.getElementById('selectedFileSize');
+        const removeFileBtn = document.getElementById('removeFileBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadSpinner = document.getElementById('uploadSpinner');
+        const uploadProgressWrapper = document.getElementById('uploadProgressWrapper');
+        const uploadProgressBar = document.getElementById('uploadProgressBar');
+        const resultPanel = document.getElementById('resultPanel');
+        const resultSuccess = document.getElementById('resultSuccess');
+        const resultError = document.getElementById('resultError');
+
+        let selectedFile = null;
+        const MAX_SIZE_BYTES = 50 * 1024 * 1024;
+        const ALLOWED_EXTENSIONS = ['.csv', '.xlsx', '.xls'];
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return `${bytes} B`;
+            if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+            return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        }
+
+        function getExtension(filename) {
+            return filename.slice(filename.lastIndexOf('.')).toLowerCase();
+        }
+
+        function handleFileSelection(file) {
+            resultPanel.classList.add('d-none');
+            resultSuccess.classList.add('d-none');
+            resultError.classList.add('d-none');
+
+            const extension = getExtension(file.name);
+            if (!ALLOWED_EXTENSIONS.includes(extension)) {
+                alert(`Unsupported file type "${extension}". Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`);
+                return;
+            }
+            if (file.size > MAX_SIZE_BYTES) {
+                alert('File exceeds the maximum allowed size of 50MB.');
+                return;
+            }
+
+            selectedFile = file;
+            selectedFileName.textContent = file.name;
+            selectedFileSize.textContent = `(${formatFileSize(file.size)})`;
+            selectedFileInfo.classList.remove('d-none');
+            uploadBtn.disabled = false;
+        }
+
+        browseBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFileSelection(e.target.files[0]);
+        });
+
+        removeFileBtn.addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            selectedFileInfo.classList.add('d-none');
+            uploadBtn.disabled = true;
+        });
+
+        // ---------- Drag & drop events ----------
+        ['dragover', 'dragenter'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-primary', 'bg-white');
+            });
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-primary', 'bg-white');
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelection(e.dataTransfer.files[0]);
+            }
+        });
+
+        // ---------- Upload submission ----------
+        uploadBtn.addEventListener('click', async function () {
+            if (!selectedFile) return;
+
+            uploadBtn.disabled = true;
+            uploadSpinner.classList.remove('d-none');
+            uploadProgressWrapper.classList.remove('d-none');
+            uploadProgressBar.style.width = '30%';
+
+            try {
+                // NOTE: uploadDataset() is defined in js/api.js (not yet created —
+                // file #40 in our sequence).
+                if (typeof uploadDataset !== 'function') {
+                    throw new Error('API layer not yet available. This will work once js/api.js is created.');
+                }
+
+                uploadProgressBar.style.width = '70%';
+                const dataset = await uploadDataset(selectedFile);
+                uploadProgressBar.style.width = '100%';
+
+                resultPanel.classList.remove('d-none');
+
+                if (dataset.status === 'failed') {
+                    resultError.classList.remove('d-none');
+                    document.getElementById('resultErrorMessage').textContent =
+                        dataset.error_message || 'The file could not be processed.';
+                } else {
+                    resultSuccess.classList.remove('d-none');
+                    document.getElementById('resultSummary').textContent =
+                        `${dataset.original_filename} — ${dataset.row_count} rows, ${dataset.column_count} columns.`;
+                    document.getElementById('viewChartsLink').href = `charts.html?dataset=${dataset.public_id}`;
+                }
+
+            } catch (error) {
+                resultPanel.classList.remove('d-none');
+                resultError.classList.remove('d-none');
+                document.getElementById('resultErrorMessage').textContent = error.message;
+            } finally {
+                uploadSpinner.classList.add('d-none');
+                uploadBtn.disabled = false;
+                uploadProgressWrapper.classList.add('d-none');
+                uploadProgressBar.style.width = '0%';
+            }
+        });
+    </script>
+</body>
+</html>

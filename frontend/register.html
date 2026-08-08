@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register — InsightAI</title>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <!-- ---------- Navigation ---------- -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.html">
+                <i class="bi bi-graph-up-arrow"></i> InsightAI
+            </a>
+        </div>
+    </nav>
+
+    <!-- ---------- Register Form ---------- -->
+    <div class="container d-flex align-items-center justify-content-center py-5" style="min-height: 85vh;">
+        <div class="card shadow-sm border-0" style="max-width: 460px; width: 100%;">
+            <div class="card-body p-4 p-md-5">
+                <h2 class="fw-bold text-center mb-1">Create Your Account</h2>
+                <p class="text-muted text-center mb-4">Start analyzing your data in minutes</p>
+
+                <!-- Alert box for registration errors, hidden by default -->
+                <div id="registerAlert" class="alert alert-danger d-none" role="alert"></div>
+
+                <form id="registerForm" novalidate>
+                    <div class="mb-3">
+                        <label for="fullName" class="form-label">Full Name</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="fullName"
+                            name="fullName"
+                            placeholder="Jane Doe"
+                            minlength="2"
+                            maxlength="150"
+                            required
+                        >
+                        <div class="invalid-feedback">Please enter your full name (at least 2 characters).</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email address</label>
+                        <input
+                            type="email"
+                            class="form-control"
+                            id="email"
+                            name="email"
+                            placeholder="you@example.com"
+                            required
+                        >
+                        <div class="invalid-feedback">Please enter a valid email address.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <input
+                                type="password"
+                                class="form-control"
+                                id="password"
+                                name="password"
+                                placeholder="At least 8 characters"
+                                minlength="8"
+                                maxlength="128"
+                                required
+                            >
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback">Password must be at least 8 characters.</div>
+                        <div class="form-text">Use 8+ characters. Longer and more unique is stronger.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm Password</label>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            placeholder="Re-enter your password"
+                            required
+                        >
+                        <div class="invalid-feedback" id="confirmPasswordFeedback">Passwords do not match.</div>
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary" id="registerSubmitBtn">
+                            <span id="registerSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                            Create Account
+                        </button>
+                    </div>
+
+                    <p class="text-center text-muted mb-0">
+                        Already have an account? <a href="login.html">Log in</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // ---------- Toggle password visibility ----------
+        document.getElementById('togglePassword').addEventListener('click', function () {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+            icon.classList.toggle('bi-eye');
+            icon.classList.toggle('bi-eye-slash');
+        });
+
+        // ---------- Register form submission ----------
+        const registerForm = document.getElementById('registerForm');
+        const registerAlert = document.getElementById('registerAlert');
+        const registerSubmitBtn = document.getElementById('registerSubmitBtn');
+        const registerSpinner = document.getElementById('registerSpinner');
+        const passwordField = document.getElementById('password');
+        const confirmPasswordField = document.getElementById('confirmPassword');
+
+        function showRegisterError(message) {
+            registerAlert.textContent = message;
+            registerAlert.classList.remove('d-none');
+        }
+
+        function hideRegisterError() {
+            registerAlert.classList.add('d-none');
+        }
+
+        function setRegisterLoading(isLoading) {
+            registerSubmitBtn.disabled = isLoading;
+            registerSpinner.classList.toggle('d-none', !isLoading);
+        }
+
+        // Custom validation: confirmPassword must match password.
+        function validatePasswordMatch() {
+            if (confirmPasswordField.value !== passwordField.value) {
+                confirmPasswordField.setCustomValidity('Passwords do not match.');
+            } else {
+                confirmPasswordField.setCustomValidity('');
+            }
+        }
+        passwordField.addEventListener('input', validatePasswordMatch);
+        confirmPasswordField.addEventListener('input', validatePasswordMatch);
+
+        registerForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            hideRegisterError();
+            validatePasswordMatch();
+
+            if (!registerForm.checkValidity()) {
+                event.stopPropagation();
+                registerForm.classList.add('was-validated');
+                return;
+            }
+
+            const fullName = document.getElementById('fullName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = passwordField.value;
+
+            setRegisterLoading(true);
+
+            try {
+                // NOTE: registerUser() is defined in js/api.js (not yet created —
+                // file #40 in our sequence). Once that file exists, this call
+                // will POST to /api/auth/register.
+                if (typeof registerUser !== 'function') {
+                    throw new Error('API layer not yet available. This will work once js/api.js is created.');
+                }
+
+                await registerUser(fullName, email, password);
+                window.location.href = 'login.html?registered=true';
+
+            } catch (error) {
+                showRegisterError(error.message || 'Registration failed. Please try again.');
+            } finally {
+                setRegisterLoading(false);
+            }
+        });
+    </script>
+</body>
+</html>

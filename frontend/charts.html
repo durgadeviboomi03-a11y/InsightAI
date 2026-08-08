@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charts — InsightAI</title>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <!-- ---------- Navigation ---------- -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" href="dashboard.html">
+                <i class="bi bi-graph-up-arrow"></i> InsightAI
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navMenu">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="upload.html">Upload</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="charts.html">Charts</a></li>
+                    <li class="nav-item"><a class="nav-link" href="chat.html">AI Chat</a></li>
+                    <li class="nav-item"><a class="nav-link" href="forecast.html">Forecast</a></li>
+                    <li class="nav-item"><a class="nav-link" href="reports.html">Reports</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Log Out</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4 py-4">
+
+        <!-- ---------- Header + Dataset Selector ---------- -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">Visualizations</h2>
+                <p class="text-muted mb-0">Automatic charts generated from your dataset.</p>
+            </div>
+            <div style="min-width: 260px;">
+                <select class="form-select" id="datasetSelector">
+                    <option value="">Select a dataset...</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ---------- Loading / Empty States ---------- -->
+        <div id="chartsLoading" class="text-center py-5 d-none">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="text-muted mt-2">Generating visualizations...</p>
+        </div>
+
+        <div id="chartsNoSelection" class="text-center py-5">
+            <i class="bi bi-bar-chart display-4 text-muted"></i>
+            <p class="text-muted mt-2">Select a dataset above to view its charts.</p>
+        </div>
+
+        <div id="chartsError" class="alert alert-danger d-none"></div>
+
+        <!-- ---------- Overview Stats Row ---------- -->
+        <div id="overviewStats" class="row g-3 mb-4 d-none">
+            <div class="col-sm-6 col-lg-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <p class="text-muted mb-1">Rows</p>
+                        <h4 class="fw-bold mb-0" id="statRows">—</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <p class="text-muted mb-1">Columns</p>
+                        <h4 class="fw-bold mb-0" id="statColumns">—</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <p class="text-muted mb-1">Missing Values</p>
+                        <h4 class="fw-bold mb-0" id="statMissing">—</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <p class="text-muted mb-1">Numeric Columns</p>
+                        <h4 class="fw-bold mb-0" id="statNumericCols">—</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---------- Charts Grid ---------- -->
+        <div id="chartsGrid" class="row g-4 d-none"></div>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // ---------- Auth guard ----------
+        (function authGuard() {
+            const token = localStorage.getItem('insightai_access_token');
+            if (!token) {
+                window.location.href = 'login.html';
+            }
+        })();
+
+        document.getElementById('logoutBtn').addEventListener('click', function (event) {
+            event.preventDefault();
+            localStorage.removeItem('insightai_access_token');
+            localStorage.removeItem('insightai_refresh_token');
+            window.location.href = 'login.html';
+        });
+
+        // ---------- Charts page logic ----------
+        // NOTE: This logic will be extracted into js/charts.js later in our
+        // sequence (file #41). Kept inline for now so this page is fully
+        // functional as soon as js/api.js exists, without needing edits.
+
+        const CHART_COLORS = ['#4C72B0', '#55A868', '#C44E52', '#8172B2', '#CCB974', '#64B5CD'];
+        let activeChartInstances = [];
+
+        function destroyActiveCharts() {
+            activeChartInstances.forEach(chart => chart.destroy());
+            activeChartInstances = [];
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('chartsError');
+            errorEl.textContent = message;
+            errorEl.classList.remove('d-none');
+        }
+
+        function hideError() {
+            document.getElementById('chartsError').classList.add('d-none');
+        }
+
+        // ---------- Populate dataset dropdown ----------
+        async function populateDatasetSelector() {
+            const selector = document.getElementById('datasetSelector');
+            try {
+                if (typeof listDatasets !== 'function') {
+                    throw new Error('API layer not yet available.');
+                }
+                const datasets = await listDatasets();
+                const readyDatasets = datasets.filter(d => d.status === 'ready');
+
+                readyDatasets.forEach(dataset => {
+                    const option = document.createElement('option');
+                    option.value = dataset.public_id;
+                    option.textContent = dataset.original_filename;
+                    selector.appendChild(option);
+                });
+
+                // Pre-select dataset from URL query param, if present.
+                const urlParams = new URLSearchParams(window.location.search);
+                const preselected = urlParams.get('dataset');
+                if (preselected && readyDatasets.some(d => d.public_id === preselected)) {
+                    selector.value = preselected;
+                    loadCharts(preselected);
+                }
+            } catch (error) {
+                showError(`Could not load your datasets: ${error.message}`);
+            }
+        }
+
+        // ---------- Render a bar/histogram-style chart into a canvas ----------
+        function renderChart(canvasId, label, chartData, chartType) {
+            const ctx = document.getElementById(canvasId);
+            const chart = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: label,
+                        data: chartData.values,
+                        backgroundColor: CHART_COLORS,
+                        borderRadius: 4,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } },
+                },
+            });
+            activeChartInstances.push(chart);
+        }
+
+        // ---------- Load overview + charts for a selected dataset ----------
+        async function loadCharts(datasetPublicId) {
+            hideError();
+            destroyActiveCharts();
+
+            document.getElementById('chartsNoSelection').classList.add('d-none');
+            document.getElementById('overviewStats').classList.add('d-none');
+            document.getElementById('chartsGrid').classList.add('d-none');
+            document.getElementById('chartsLoading').classList.remove('d-none');
+
+            try {
+                if (typeof getDatasetOverview !== 'function') {
+                    throw new Error('API layer not yet available. This will work once js/api.js is created.');
+                }
+
+                const overview = await getDatasetOverview(datasetPublicId);
+
+                document.getElementById('statRows').textContent = overview.row_count;
+                document.getElementById('statColumns').textContent = overview.column_count;
+                const totalMissing = Object.values(overview.missing_values).reduce((a, b) => a + b, 0);
+                document.getElementById('statMissing').textContent = totalMissing;
+                document.getElementById('statNumericCols').textContent = Object.keys(overview.numeric_summary).length;
+                document.getElementById('overviewStats').classList.remove('d-none');
+
+                const chartsGrid = document.getElementById('chartsGrid');
+                chartsGrid.innerHTML = '';
+
+                let chartIndex = 0;
+                for (const column of Object.keys(overview.numeric_summary)) {
+                    const canvasId = `chart_${chartIndex++}`;
+                    chartsGrid.insertAdjacentHTML('beforeend', `
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">${column} (distribution)</h6>
+                                    <canvas id="${canvasId}"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                }
+
+                chartsGrid.classList.remove('d-none');
+                document.getElementById('chartsLoading').classList.add('d-none');
+
+                // Charts are rendered after the canvases exist in the DOM.
+                // NOTE: real bar/histogram values come from a dedicated chart-data
+                // endpoint in a future iteration; this renders using numeric_summary
+                // (min/mean/max) as a simple placeholder visualization for now.
+                chartIndex = 0;
+                for (const [column, stats] of Object.entries(overview.numeric_summary)) {
+                    const canvasId = `chart_${chartIndex++}`;
+                    renderChart(canvasId, column, {
+                        labels: ['Min', 'Mean', 'Max'],
+                        values: [stats.min, stats.mean, stats.max],
+                    }, 'bar');
+                }
+
+                if (Object.keys(overview.numeric_summary).length === 0) {
+                    chartsGrid.innerHTML = `<p class="text-muted">No numeric columns available to chart for this dataset.</p>`;
+                }
+
+            } catch (error) {
+                document.getElementById('chartsLoading').classList.add('d-none');
+                showError(error.message);
+            }
+        }
+
+        document.getElementById('datasetSelector').addEventListener('change', function () {
+            if (this.value) {
+                loadCharts(this.value);
+            } else {
+                document.getElementById('overviewStats').classList.add('d-none');
+                document.getElementById('chartsGrid').classList.add('d-none');
+                document.getElementById('chartsNoSelection').classList.remove('d-none');
+                destroyActiveCharts();
+            }
+        });
+
+        populateDatasetSelector();
+    </script>
+</body>
+</html>

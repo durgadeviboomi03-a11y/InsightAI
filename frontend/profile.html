@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile — InsightAI</title>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <!-- ---------- Navigation ---------- -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" href="dashboard.html">
+                <i class="bi bi-graph-up-arrow"></i> InsightAI
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navMenu">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="upload.html">Upload</a></li>
+                    <li class="nav-item"><a class="nav-link" href="charts.html">Charts</a></li>
+                    <li class="nav-item"><a class="nav-link" href="chat.html">AI Chat</a></li>
+                    <li class="nav-item"><a class="nav-link" href="forecast.html">Forecast</a></li>
+                    <li class="nav-item"><a class="nav-link" href="reports.html">Reports</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Log Out</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5" style="max-width: 640px;">
+
+        <h2 class="fw-bold mb-1">Your Profile</h2>
+        <p class="text-muted mb-4">View and update your account information.</p>
+
+        <div id="profileLoading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="text-muted mt-2">Loading your profile...</p>
+        </div>
+
+        <div id="profileCard" class="card border-0 shadow-sm d-none">
+            <div class="card-body p-4">
+
+                <div class="d-flex align-items-center mb-4">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold"
+                         style="width: 64px; height: 64px; font-size: 1.5rem;" id="profileInitials">?</div>
+                    <div class="ms-3">
+                        <h5 class="fw-bold mb-0" id="profileDisplayName">—</h5>
+                        <span class="badge bg-secondary" id="profileRoleBadge">user</span>
+                        <p class="text-muted small mb-0 mt-1">Member since <span id="profileJoinDate">—</span></p>
+                    </div>
+                </div>
+
+                <div id="profileAlert" class="alert d-none"></div>
+
+                <form id="profileForm">
+                    <div class="mb-3">
+                        <label for="profileFullName" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="profileFullName" minlength="2" maxlength="150" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="profileEmail" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="profileEmail" required>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="submit" class="btn btn-primary" id="profileSaveBtn">
+                            <span id="profileSpinner" class="spinner-border spinner-border-sm d-none"></span>
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // ---------- Auth guard ----------
+        (function authGuard() {
+            const token = localStorage.getItem('insightai_access_token');
+            if (!token) {
+                window.location.href = 'login.html';
+            }
+        })();
+
+        document.getElementById('logoutBtn').addEventListener('click', function (event) {
+            event.preventDefault();
+            localStorage.removeItem('insightai_access_token');
+            localStorage.removeItem('insightai_refresh_token');
+            window.location.href = 'login.html';
+        });
+
+        // ---------- Profile page logic ----------
+        // NOTE: kept inline for now (no dedicated js/profile.js exists in our
+        // file order — profile functionality is covered by js/api.js + app.js).
+
+        function getInitials(fullName) {
+            return fullName
+                .split(' ')
+                .filter(Boolean)
+                .slice(0, 2)
+                .map(part => part[0].toUpperCase())
+                .join('');
+        }
+
+        function showProfileAlert(message, type) {
+            const el = document.getElementById('profileAlert');
+            el.className = `alert alert-${type}`;
+            el.textContent = message;
+            el.classList.remove('d-none');
+        }
+
+        async function loadProfile() {
+            try {
+                if (typeof getCurrentUser !== 'function') {
+                    throw new Error('API layer not yet available. This will work once js/api.js is created.');
+                }
+                const user = await getCurrentUser();
+
+                document.getElementById('profileInitials').textContent = getInitials(user.full_name);
+                document.getElementById('profileDisplayName').textContent = user.full_name;
+                document.getElementById('profileRoleBadge').textContent = user.role;
+                document.getElementById('profileRoleBadge').className =
+                    `badge ${user.role === 'admin' ? 'bg-danger' : 'bg-secondary'}`;
+                document.getElementById('profileJoinDate').textContent =
+                    new Date(user.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+
+                document.getElementById('profileFullName').value = user.full_name;
+                document.getElementById('profileEmail').value = user.email;
+
+                document.getElementById('profileLoading').classList.add('d-none');
+                document.getElementById('profileCard').classList.remove('d-none');
+
+            } catch (error) {
+                document.getElementById('profileLoading').innerHTML =
+                    `<p class="text-danger">Could not load profile: ${error.message}</p>`;
+            }
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const fullName = document.getElementById('profileFullName').value.trim();
+            const email = document.getElementById('profileEmail').value.trim();
+
+            const saveBtn = document.getElementById('profileSaveBtn');
+            const spinner = document.getElementById('profileSpinner');
+            document.getElementById('profileAlert').classList.add('d-none');
+            saveBtn.disabled = true;
+            spinner.classList.remove('d-none');
+
+            try {
+                if (typeof updateProfile !== 'function') {
+                    throw new Error('API layer not yet available. This will work once js/api.js is created.');
+                }
+                const updatedUser = await updateProfile({ full_name: fullName, email: email });
+
+                document.getElementById('profileInitials').textContent = getInitials(updatedUser.full_name);
+                document.getElementById('profileDisplayName').textContent = updatedUser.full_name;
+                showProfileAlert('Profile updated successfully!', 'success');
+
+            } catch (error) {
+                showProfileAlert(error.message, 'danger');
+            } finally {
+                saveBtn.disabled = false;
+                spinner.classList.add('d-none');
+            }
+        });
+
+        loadProfile();
+    </script>
+</body>
+</html>

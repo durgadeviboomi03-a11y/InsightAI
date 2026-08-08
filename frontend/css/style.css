@@ -1,0 +1,180 @@
+/*
+ * frontend/css/style.css
+ *
+ * Custom styles for InsightAI, layered on top of Bootstrap 5.
+ * Design direction: minimal, academic aesthetic with a blue-green palette.
+ */
+
+/* ---------- Design Tokens (CSS Variables) ---------- */
+:root {
+    --insight-primary: #2C5F6F;       /* Deep teal — primary brand color */
+    --insight-primary-dark: #1E4552;  /* Darker teal for hover states */
+    --insight-secondary: #4E8C7A;     /* Muted sage-green — secondary accent */
+    --insight-accent: #6FA8A0;        /* Soft blue-green — highlights */
+    --insight-bg: #F4F7F6;            /* Very light blue-green — page background */
+    --insight-surface: #FFFFFF;       /* Card/surface background */
+    --insight-text: #223338;          /* Near-black with a blue-green tint */
+    --insight-text-muted: #5C7168;    /* Muted body text */
+    --insight-border: #DCE6E3;        /* Soft border color */
+    --insight-danger: #B5544A;        /* Muted red for errors — kept low-saturation to match palette */
+    --insight-radius: 0.6rem;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: var(--insight-text);
+    background-color: var(--insight-bg);
+}
+
+/* ---------- Bootstrap Color Overrides ---------- */
+.bg-primary {
+    background-color: var(--insight-primary) !important;
+}
+
+.btn-primary {
+    background-color: var(--insight-primary);
+    border-color: var(--insight-primary);
+}
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--insight-primary-dark);
+    border-color: var(--insight-primary-dark);
+}
+
+.btn-outline-primary {
+    color: var(--insight-primary);
+    border-color: var(--insight-primary);
+}
+.btn-outline-primary:hover {
+    background-color: var(--insight-primary);
+    border-color: var(--insight-primary);
+}
+
+.text-primary {
+    color: var(--insight-primary) !important;
+}
+
+.navbar.bg-dark {
+    background-color: var(--insight-primary-dark) !important;
+}
+
+a {
+    color: var(--insight-primary);
+}
+a:hover {
+    color: var(--insight-primary-dark);
+}
+
+/* ---------- Surfaces ---------- */
+.card {
+    border-radius: var(--insight-radius);
+    background-color: var(--insight-surface);
+}
+
+.card.shadow-sm {
+    box-shadow: 0 2px 10px rgba(44, 95, 111, 0.06) !important;
+}
+
+.card-header {
+    border-bottom: 1px solid var(--insight-border);
+    color: var(--insight-text);
+}
+
+/* ---------- Forms ---------- */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--insight-accent);
+    box-shadow: 0 0 0 0.2rem rgba(111, 168, 160, 0.25);
+}
+
+.form-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--insight-text);
+}
+
+.form-text,
+.text-muted {
+    color: var(--insight-text-muted) !important;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+    border-radius: var(--insight-radius);
+    font-weight: 500;
+}
+
+/* ---------- Badges ---------- */
+.badge {
+    font-weight: 500;
+    padding: 0.4em 0.7em;
+    border-radius: 0.4rem;
+}
+
+/* ---------- Hero / Landing Page ---------- */
+header.bg-dark {
+    background: linear-gradient(135deg, var(--insight-primary-dark), var(--insight-primary)) !important;
+}
+
+section.bg-primary {
+    background: linear-gradient(135deg, var(--insight-primary), var(--insight-secondary)) !important;
+}
+
+/* ---------- Feature Cards (index.html) ---------- */
+#features .card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+#features .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(44, 95, 111, 0.12) !important;
+}
+
+/* ---------- Dashboard Stat Cards ---------- */
+.card .card-body h3.fw-bold,
+.card .card-body h4.fw-bold {
+    color: var(--insight-primary);
+}
+
+/* ---------- Drop Zone (upload.html) ---------- */
+#dropZone {
+    border-color: var(--insight-border) !important;
+    background-color: var(--insight-bg);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+#dropZone.border-primary {
+    border-color: var(--insight-primary) !important;
+}
+
+/* ---------- Chat Bubbles (chat.html) ---------- */
+#chatMessages {
+    background-color: var(--insight-bg);
+}
+#chatMessages .bg-primary {
+    background-color: var(--insight-primary) !important;
+}
+
+/* ---------- Scrollbar (subtle, matches palette) ---------- */
+#chatMessages::-webkit-scrollbar,
+.overflow-auto::-webkit-scrollbar {
+    width: 8px;
+}
+#chatMessages::-webkit-scrollbar-thumb,
+.overflow-auto::-webkit-scrollbar-thumb {
+    background-color: var(--insight-border);
+    border-radius: 4px;
+}
+
+/* ---------- Utility ---------- */
+.border-dashed {
+    border-style: dashed !important;
+}
+
+/* ---------- Responsive Tweaks ---------- */
+@media (max-width: 576px) {
+    .display-4 {
+        font-size: 2rem;
+    }
+    .display-3 {
+        font-size: 2.5rem;
+    }
+}
